@@ -20,7 +20,7 @@ This is a simple, visually enhanced **2D Snake Game** built using **pure HTML, C
 ## 🖥️ **How to Run Locally:**
 
 1. **Clone or Download the Project**
-   git clone https://github.com/yourusername/snake-game-html.git
+   git clone https://github.com/Joras_Latihd/Snake_Game_Project.git
 
 2. **Open `index.html`**
 
