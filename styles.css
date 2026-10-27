@@ -426,3 +426,69 @@ canvas {
     transition: none;
   }
 }
+
+/* ---------- Typography ---------- */
+:root {
+  --font-display: "Fredoka", ui-rounded, "Segoe UI", system-ui, sans-serif;
+  --font-body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+}
+body {
+  font-family: var(--font-body);
+  font-weight: 500;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+h1,
+.overlay h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: #1a2538;
+  text-shadow:
+    0 2px 0 #fff,
+    0 5px 8px rgba(31, 42, 58, 0.2);
+}
+.board h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.15rem;
+}
+.by {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.stats span,
+.settings label {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.stats strong {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.65rem;
+  line-height: 1.15;
+}
+button {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+select,
+input {
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+.overlay p {
+  font-weight: 500;
+  line-height: 1.45;
+}
+.hint {
+  font-weight: 500;
+}
+.board li {
+  font-weight: 600;
+}
+.board li span:last-of-type {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
