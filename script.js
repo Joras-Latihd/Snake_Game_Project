@@ -40,13 +40,24 @@
       }
     },
   };
-  let board = store.get("leaderboard", []); // same key as the old version, so old scores carry over
-  let best = store.get("snakeBest", 0);
   const opt = {
     difficulty: store.get("snakeDiff", "normal"),
     walls: store.get("snakeWalls", "solid"),
     sound: store.get("snakeSound", true),
   };
+
+  // one leaderboard and one best score per difficulty (old single leaderboard moves to Normal)
+  let boards = store.get("leaderboards", null);
+  if (!boards) {
+    boards = { easy: [], normal: store.get("leaderboard", []), hard: [] };
+    store.set("leaderboards", boards);
+  }
+  let bests = store.get("snakeBests", null);
+  if (!bests) {
+    bests = { easy: 0, normal: store.get("snakeBest", 0), hard: 0 };
+    store.set("snakeBests", bests);
+  }
+  let viewLevel = opt.difficulty;
 
   let snake,
     dir,
@@ -112,7 +123,12 @@
 
   function hud() {
     $("score").textContent = score;
-    $("best").textContent = best;
+    $("best").textContent =
+      bests[
+        state === "playing" || state === "paused"
+          ? run.difficulty
+          : opt.difficulty
+      ];
     $("level").textContent = level();
   }
 
@@ -160,17 +176,19 @@
     state = "over";
     beep(120, 0.35, "sawtooth");
     if (navigator.vibrate) navigator.vibrate(120);
-    if (score > best) {
-      best = score;
-      store.set("snakeBest", best);
+    const lv = run.difficulty,
+      rows = boards[lv];
+    if (score > bests[lv]) {
+      bests[lv] = score;
+      store.set("snakeBests", bests);
     }
     hud();
     const qualifies =
-      score > 0 && (board.length < 5 || score > board[board.length - 1].score);
+      score > 0 && (rows.length < 5 || score > rows[rows.length - 1].score);
     $("nameInput").value = store.get("snakeName", "");
     showOverlay(
       "Game over",
-      `Score: ${score}. ${qualifies ? "You made the leaderboard." : "Try again."}`,
+      `Score: ${score} on ${lv[0].toUpperCase() + lv.slice(1)}. ${qualifies ? "You made the leaderboard." : "Try again."}`,
       "Play again",
       qualifies,
     );
@@ -194,6 +212,8 @@
     acc = 0;
     last = performance.now();
     $("overlay").hidden = true;
+    viewLevel = run.difficulty;
+    renderBoard();
     $("pauseBtn").disabled = false;
     $("pauseBtn").textContent = "Pause";
   }
@@ -220,50 +240,95 @@
   // ---------- rendering ----------
   function fit() {
     const d = window.devicePixelRatio || 1;
-    canvas.width = canvas.height = Math.round(SIZE * d);
-    ctx.setTransform(
-      (d * canvas.width) / (SIZE * d),
-      0,
-      0,
-      (d * canvas.height) / (SIZE * d),
-      0,
-      0,
+    const px = Math.round((canvas.clientWidth || SIZE) * d);
+    if (canvas.width === px) return;
+    canvas.width = canvas.height = px;
+    ctx.setTransform(px / SIZE, 0, 0, px / SIZE, 0, 0);
+  }
+
+  function ball(cx, cy, r, c1, c2, c3) {
+    const g = ctx.createRadialGradient(
+      cx - r * 0.35,
+      cy - r * 0.4,
+      r * 0.1,
+      cx,
+      cy,
+      r,
     );
+    g.addColorStop(0, c1);
+    g.addColorStop(0.55, c2);
+    g.addColorStop(1, c3);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function blob(x, y, rx, ry, color, rot = 0) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   function draw() {
-    ctx.fillStyle = "#05080a";
-    ctx.fillRect(0, 0, SIZE, SIZE);
-    ctx.strokeStyle = "rgba(0,255,136,.05)";
-    ctx.lineWidth = 1;
-    for (let i = 1; i < N; i++) {
+    const now = performance.now();
+    for (let y = 0; y < N; y++)
+      for (let x = 0; x < N; x++) {
+        ctx.fillStyle = (x + y) % 2 ? "#a9d66b" : "#b6e07a";
+        ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
+      }
+
+    if (food) {
+      const fx = food.x * CELL + 10,
+        fy = food.y * CELL + 11;
+      blob(fx + 1, fy + 6, 7, 3, "rgba(30,70,20,.25)");
+      ball(fx, fy, 7.5, "#ff9c9c", "#e5303c", "#9e1220");
+      blob(fx + 3, fy - 7, 3.6, 1.8, "#3f9b2f", -0.5);
+      blob(fx - 2.5, fy - 2.5, 2, 1.2, "rgba(255,255,255,.6)", -0.6);
+    }
+    if (bonus && (bonus.ttl > 15 || bonus.ttl % 4 < 2)) {
+      const bx = bonus.x * CELL + 10,
+        by = bonus.y * CELL + 10,
+        bob = Math.sin(now / 180) * 1.5;
+      blob(bx + 1, by + 7, 7, 3, "rgba(30,70,20,.25)");
+      ball(bx, by - 2 + bob, 9, "#fff6bd", "#ffc933", "#b8820a");
+      ctx.strokeStyle = "rgba(150,95,0,.5)";
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(i * CELL, 0);
-      ctx.lineTo(i * CELL, SIZE);
-      ctx.moveTo(0, i * CELL);
-      ctx.lineTo(SIZE, i * CELL);
+      ctx.arc(bx, by - 2 + bob, 5.5, 0, Math.PI * 2);
       ctx.stroke();
     }
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = "#ff3355";
-    ctx.fillStyle = "#ff3355";
-    ctx.beginPath();
-    ctx.arc(food.x * CELL + 10, food.y * CELL + 10, 7, 0, 7);
-    ctx.fill();
-    if (bonus && (bonus.ttl > 15 || bonus.ttl % 4 < 2)) {
-      ctx.shadowColor = "#ffd23f";
-      ctx.fillStyle = "#ffd23f";
-      ctx.beginPath();
-      ctx.arc(bonus.x * CELL + 10, bonus.y * CELL + 10, 9, 0, 7);
-      ctx.fill();
+
+    // body points from tail to head, with midpoints so the body reads as one smooth tube
+    const len = snake.length,
+      pts = [];
+    for (let i = len - 1; i >= 0; i--) {
+      const s = snake[i],
+        r = i === 0 ? 10.5 : 9.5 - Math.max(0, i - (len - 4)) * 0.9;
+      const p = pts[pts.length - 1];
+      if (p && Math.abs(p.gx - s.x) <= 1 && Math.abs(p.gy - s.y) <= 1)
+        pts.push({
+          x: (p.x + s.x * CELL + 10) / 2,
+          y: (p.y + s.y * CELL + 10) / 2,
+          r: (p.r + r) / 2,
+        });
+      pts.push({ x: s.x * CELL + 10, y: s.y * CELL + 10, r, gx: s.x, gy: s.y });
     }
-    ctx.shadowColor = "#00ff88";
-    snake.forEach((s, i) => {
-      ctx.fillStyle =
-        i === 0 ? "#c8ffe4" : `hsl(150 100% ${Math.max(32, 52 - i)}%)`;
-      ctx.fillRect(s.x * CELL + 1, s.y * CELL + 1, CELL - 2, CELL - 2);
+    pts.forEach((p) =>
+      blob(p.x + 2, p.y + 5, p.r, p.r * 0.8, "rgba(30,70,20,.22)"),
+    );
+    pts.forEach((p) => ball(p.x, p.y, p.r, "#9cc8ff", "#2f7df6", "#1b4fb8"));
+
+    const h = pts[pts.length - 1],
+      px = -dir.y,
+      py = dir.x;
+    [-1, 1].forEach((side) => {
+      const ex = h.x + dir.x * 3.5 + px * 4.6 * side,
+        ey = h.y + dir.y * 3.5 + py * 4.6 * side;
+      blob(ex, ey, 3.3, 3.3, "#fff");
+      blob(ex + dir.x * 1.1, ey + dir.y * 1.1, 1.7, 1.7, "#14213a");
     });
-    ctx.shadowBlur = 0;
   }
 
   function frame(t) {
@@ -280,22 +345,28 @@
   }
 
   function renderBoard() {
-    const list = $("scores");
+    document.querySelectorAll("#tabs button").forEach((b) => {
+      const on = b.dataset.level === viewLevel;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-selected", on);
+    });
+    const list = $("scores"),
+      rows = boards[viewLevel];
     list.replaceChildren();
-    if (!board.length) {
+    if (!rows.length) {
       const li = document.createElement("li");
       li.className = "empty";
-      li.textContent = "No scores yet. Be the first.";
+      li.textContent = `No ${viewLevel} scores yet. Be the first.`;
       list.append(li);
       return;
     }
-    board.forEach((e) => {
+    rows.forEach((e) => {
       const li = document.createElement("li"),
         n = document.createElement("span"),
-        s = document.createElement("span");
+        sc = document.createElement("span");
       n.textContent = e.name;
-      s.textContent = e.score;
-      li.append(n, s);
+      sc.textContent = e.score;
+      li.append(n, sc);
       list.append(li);
     });
   }
@@ -353,6 +424,16 @@
   $("difficulty").addEventListener("change", (e) => {
     opt.difficulty = e.target.value;
     store.set("snakeDiff", opt.difficulty);
+    viewLevel = opt.difficulty;
+    renderBoard();
+    hud();
+  });
+  $("tabs").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-level]");
+    if (b) {
+      viewLevel = b.dataset.level;
+      renderBoard();
+    }
   });
   $("walls").addEventListener("change", (e) => {
     opt.walls = e.target.value;
@@ -368,14 +449,17 @@
     e.preventDefault();
     const name = $("nameInput").value.trim().slice(0, 12) || "Anonymous";
     store.set("snakeName", name);
-    board.push({ name, score });
-    board.sort((a, b) => b.score - a.score);
-    board = board.slice(0, 5);
-    store.set("leaderboard", board);
+    const lv = run.difficulty;
+    boards[lv].push({ name, score });
+    boards[lv].sort((a, b) => b.score - a.score);
+    boards[lv] = boards[lv].slice(0, 5);
+    store.set("leaderboards", boards);
+    viewLevel = lv;
     renderBoard();
     $("saveForm").hidden = true;
     $("ovMsg").textContent = "Score saved.";
   });
+  new ResizeObserver(fit).observe(canvas);
   window.addEventListener("resize", fit);
   document.addEventListener("visibilitychange", () => {
     if (document.hidden && state === "playing") togglePause();

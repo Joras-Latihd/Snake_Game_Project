@@ -492,3 +492,34 @@ input {
   font-family: var(--font-display);
   font-weight: 600;
 }
+
+/* ---------- Leaderboard tabs ---------- */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 0 8px;
+  border-radius: 14px;
+  background: #d3dbe7;
+  box-shadow: inset 0 2px 5px rgba(31, 42, 58, 0.2);
+}
+.tabs button {
+  flex: 1;
+  padding: 6px 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: transparent;
+  box-shadow: none;
+  border-radius: 11px;
+}
+.tabs button:active:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+.tabs button.active {
+  color: var(--ink);
+  background: linear-gradient(180deg, #fff, #e8edf5);
+  box-shadow:
+    0 3px 0 var(--edge),
+    0 5px 8px -2px rgba(31, 42, 58, 0.25);
+}
