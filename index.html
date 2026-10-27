@@ -1,170 +1,87 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Snake Game by Myself</title>
-  <style>
-    body {
-      background: linear-gradient(to bottom right, #111, #444);
-      color: #fff;
-      font-family: 'Segoe UI', sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      margin-bottom: 5px;
-      font-size: 2em;
-    }
-    #score {
-      font-size: 20px;
-      margin-bottom: 10px;
-    }
-    canvas {
-      background: #000;
-      display: block;
-      margin: 0 auto;
-      border: 3px solid #0f0;
-      box-shadow: 0 0 20px #0f0;
-    }
-    #leaderboard {
-      margin-top: 20px;
-      padding: 10px;
-      border: 1px solid #ccc;
-      max-width: 300px;
-      margin-left: auto;
-      margin-right: auto;
-      background: #222;
-    }
-    #leaderboard h2 {
-      margin: 5px 0;
-      font-size: 18px;
-      color: #0f0;
-    }
-    .entry {
-      display: flex;
-      justify-content: space-between;
-      padding: 5px 0;
-      border-bottom: 1px solid #555;
-    }
-  </style>
-</head>
-<body>
-  <div style="background-color: rgb(217, 230, 103); width: 50%; margin: 0 auto; border-radius: 10px;">
-  <h3 style="color: rgb(84, 9, 204); font-weight: 800;">Snake Game Project by SAROJ DHITAL</h3></div>
-  <div><h1>2D Snake Game</h1></div>
-  <div id="score">Score: 0</div>
-  <canvas id="gameCanvas" width="400" height="400"></canvas>
-  <div id="leaderboard">
-    <h2>🏆 Leaderboard</h2>
-    <div id="scores"></div>
-  </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="Neon 2D Snake game with difficulty modes, bonus food, touch controls and a local leaderboard."
+    />
+    <meta name="theme-color" content="#05080a" />
+    <title>Neon Snake | Saroj Dhital</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <h1>Neon Snake</h1>
+        <p class="by">A project by Saroj Dhital</p>
+      </header>
 
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    const scoreDisplay = document.getElementById("score");
-    const scoresBoard = document.getElementById("scores");
+      <section class="stats" aria-live="polite">
+        <div><span>Score</span><strong id="score">0</strong></div>
+        <div><span>Best</span><strong id="best">0</strong></div>
+        <div><span>Level</span><strong id="level">1</strong></div>
+      </section>
 
-    const gridSize = 20;
-    const tileCount = canvas.width / gridSize;
-    let snake = [{ x: 10, y: 10 }];
-    let snakeLength = 5;
-    let vx = 0, vy = 0;
-    let score = 0;
-    let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+      <section class="settings">
+        <label
+          >Difficulty
+          <select id="difficulty">
+            <option value="easy">Easy</option>
+            <option value="normal">Normal</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
+        <label
+          >Walls
+          <select id="walls">
+            <option value="solid">Solid (deadly)</option>
+            <option value="wrap">Wrap around</option>
+          </select>
+        </label>
+        <button id="soundBtn" type="button" aria-pressed="true">
+          Sound: on
+        </button>
+        <button id="pauseBtn" type="button">Pause</button>
+      </section>
 
-    let food = {
-      x: Math.floor(Math.random() * tileCount),
-      y: Math.floor(Math.random() * tileCount)
-    };
+      <div class="stage">
+        <canvas id="game" aria-label="Snake game board"></canvas>
+        <div id="overlay" class="overlay">
+          <h2 id="ovTitle">Neon Snake</h2>
+          <p id="ovMsg">
+            Eat food, avoid walls and yourself. Gold food is worth 50.
+          </p>
+          <form id="saveForm" hidden>
+            <input
+              id="nameInput"
+              maxlength="12"
+              placeholder="Your name"
+              autocomplete="off"
+            />
+            <button type="submit">Save score</button>
+          </form>
+          <button id="playBtn" type="button">Play</button>
+          <p class="hint">Arrow keys / WASD, swipe, or D-pad. Space pauses.</p>
+        </div>
+      </div>
 
-    function updateGame() {
-      if (vx === 0 && vy === 0) {
-        drawGame();
-        return;
-      }
+      <div class="dpad" aria-label="On-screen controls">
+        <button data-dir="up" aria-label="Up">&#9650;</button>
+        <button data-dir="left" aria-label="Left">&#9664;</button>
+        <button data-dir="down" aria-label="Down">&#9660;</button>
+        <button data-dir="right" aria-label="Right">&#9654;</button>
+      </div>
 
-      const headX = snake[0].x + vx;
-      const headY = snake[0].y + vy;
-
-      if (headX < 0 || headX >= tileCount || headY < 0 || headY >= tileCount) return resetGame();
-
-      for (let cell of snake) {
-        if (cell.x === headX && cell.y === headY) return resetGame();
-      }
-
-      snake.unshift({ x: headX, y: headY });
-
-      if (headX === food.x && headY === food.y) {
-        score++;
-        snakeLength++;
-        scoreDisplay.innerHTML = "Score: " + score;
-        food = {
-          x: Math.floor(Math.random() * tileCount),
-          y: Math.floor(Math.random() * tileCount)
-        };
-      }
-
-      if (snake.length > snakeLength) snake.pop();
-
-      drawGame();
-    }
-
-    function drawGame() {
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.fillStyle = "#0f0";
-      snake.forEach(cell => {
-        ctx.fillRect(cell.x * gridSize, cell.y * gridSize, gridSize - 1, gridSize - 1);
-      });
-
-      ctx.fillStyle = "#f00";
-      ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 1, gridSize - 1);
-    }
-
-    function resetGame() {
-      alert("Game Over! Your score was: " + score);
-      saveScore(score);
-      score = 0;
-      scoreDisplay.innerHTML = "Score: 0";
-      snake = [{ x: 10, y: 10 }];
-      snakeLength = 5;
-      vx = 0; vy = 0;
-      food = {
-        x: Math.floor(Math.random() * tileCount),
-        y: Math.floor(Math.random() * tileCount)
-      };
-    }
-
-    document.addEventListener("keydown", function (e) {
-      switch (e.key) {
-        case "ArrowUp": if (vy !== 1) { vx = 0; vy = -1; } break;
-        case "ArrowDown": if (vy !== -1) { vx = 0; vy = 1; } break;
-        case "ArrowLeft": if (vx !== 1) { vx = -1; vy = 0; } break;
-        case "ArrowRight": if (vx !== -1) { vx = 1; vy = 0; } break;
-      }
-    });
-
-    setInterval(updateGame, 100);
-
-    function saveScore(score) {
-      const name = prompt("Enter your name for the leaderboard:") || "Anonymous";
-      leaderboard.push({ name, score });
-      leaderboard.sort((a, b) => b.score - a.score);
-      leaderboard = leaderboard.slice(0, 5);
-      localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
-      displayLeaderboard();
-    }
-
-    function displayLeaderboard() {
-      scoresBoard.innerHTML = leaderboard.map(entry =>
-        `<div class="entry"><span>${entry.name}</span><span>${entry.score}</span></div>`
-      ).join("");
-    }
-
-    displayLeaderboard();
-  </script>
-</body>
+      <section class="board">
+        <h2>Leaderboard</h2>
+        <ol id="scores"></ol>
+      </section>
+    </main>
+    <script src="script.js"></script>
+  </body>
 </html>
