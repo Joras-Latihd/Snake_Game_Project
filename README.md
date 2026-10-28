@@ -67,10 +67,10 @@ Snake_Game_Project/
 ## 📸 **Screenshots:**
 
 **Home Interface**
-![image alt](https://github.com/Git-Hub-dot/Snake-Game-Project/blob/a4884b1d5f8e1cad77e626a766f7dda340485417/Home%20Interface.png)
+![image alt](https://github.com/Joras-Latihd/Snake_Game_Project/blob/70c9518835f16448c25a50eb6a5792579009cdc9/Updated%20Homepage.png)
 
 **During Gameplay**
-![image alt](https://github.com/Git-Hub-dot/Snake-Game-Project/blob/3e9ac9525eccc660aa091c1a2a1ba3f3e764ba4b/Game%20On.png)
+![image alt](https://github.com/Joras-Latihd/Snake_Game_Project/blob/70c9518835f16448c25a50eb6a5792579009cdc9/Updated%20During%20Gameplay.png)
 ***
 
 
